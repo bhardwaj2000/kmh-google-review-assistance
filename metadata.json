@@ -1,0 +1,6 @@
+{
+  "name": "QuickReview — AI Google Review Assistant",
+  "description": "A mobile-first QR-code customer feedback and AI Google Review assistant for local shops and retail businesses.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
