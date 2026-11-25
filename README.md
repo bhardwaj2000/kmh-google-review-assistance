@@ -6,7 +6,8 @@
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio: https://ai.studio/apps/6c2c588a-dfbf-40da-b4a0-67ca38ad4b6b
+View our app in AI Studio: https://ai.studio/apps/6c2c588a-dfbf-40da-b4a0-67ca38ad4b6b
+View our app live on: https://kmh-google-review-assistance.vercel.app/
 
 ## Run Locally
 
