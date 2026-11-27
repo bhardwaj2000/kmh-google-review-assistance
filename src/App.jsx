@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { QrCode } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import StarRatingStep from './components/StarRatingStep.jsx';
 import AiReviewStep from './components/AiReviewStep.jsx';
 import PrivateFeedbackStep from './components/PrivateFeedbackStep.jsx';
@@ -389,6 +390,7 @@ export default function App() {
       />
 
       <Toast toast={toast} />
+      <Analytics />
     </div>
   );
 }
