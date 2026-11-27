@@ -1,32 +1,77 @@
-// Built-in offline fallback reviews used if the Gemini API call fails or rate-limits.
-// Each review stays concise (2-3 sentences, under 45 words) and sounds like a real customer.
+// Built-in offline fallback reviews tuned for K.M. Handloom's local Patna SEO.
+// Each review stays natural (2-3 sentences, under 48 words) with authentic local keywords.
+
+const PRODUCT_PHRASES = {
+  english: {
+    Curtains: 'door and window curtains',
+    Bedsheets: 'cotton king size bedsheets',
+    'Blankets & Razai': 'mink blankets and winter razai',
+    'Mattress & Pillows': 'an orthopedic mattress and sleeping pillows',
+    'Sofa Covers & Doormats': 'velvet sofa covers and anti-skid doormats',
+    'Wholesale / Bulk': 'bulk handloom items at wholesale rates',
+  },
+  hinglish: {
+    Curtains: 'door aur window parda',
+    Bedsheets: 'cotton chadar aur bedsheet',
+    'Blankets & Razai': 'kambal aur razai',
+    'Mattress & Pillows': 'gadda aur takiya',
+    'Sofa Covers & Doormats': 'velvet sofa cover aur doormat',
+    'Wholesale / Bulk': 'wholesale rate par handloom saman',
+  },
+};
 
 const TAG_PHRASES = {
   english: {
     'Great Quality': 'the fabric quality really stood out',
-    'Good Curtain Variety': 'they have a great curtain and handloom collection',
-    'Reasonable Prices': 'prices felt fair for the quality',
+    'Wholesale & Fair Prices': 'rates are very reasonable even compared to wholesale markets',
     'Helpful Staff': 'the staff was patient and helpful',
-    'Good Variety': 'they have a nice range to pick from',
-    'Clean Store': 'the store is neat and well kept',
+    'Good Variety': 'they have a wide home furnishing collection',
+    'Wedding / Gift Sets': 'their wedding bedding and blanket sets look lovely',
+    'Clean Store': 'the store is neat and well organized',
   },
   hinglish: {
     'Great Quality': 'kapde aur fabric ki quality kaafi acchi lagi',
-    'Good Curtain Variety': 'curtains aur handloom ki variety badiya hai',
-    'Reasonable Prices': 'rates bhi kaafi reasonable hain',
+    'Wholesale & Fair Prices': 'wholesale aur retail dono rates kaafi reasonable hain',
     'Helpful Staff': 'staff bahut polite aur helpful tha',
-    'Good Variety': 'collection aur variety badiya hai',
+    'Good Variety': 'variety aur collection badiya hai',
+    'Wedding / Gift Sets': 'shaadi ke liye kambal aur bedsheet set kaafi ache mil gaye',
     'Clean Store': 'dukan kaafi saaf aur well-maintained hai',
   },
 };
 
 function cleanDisplayShopName(shopName) {
-  if (!shopName || typeof shopName !== 'string') return 'this store';
+  if (!shopName || typeof shopName !== 'string') return 'K.M. Handloom';
   const unwrapped = shopName.trim().replace(/^\[(.*)\]$/, '$1').trim();
   if (!unwrapped || /^your shop name$/i.test(unwrapped)) {
-    return 'this store';
+    return 'K.M. Handloom';
   }
   return unwrapped;
+}
+
+function buildProductMention(products, language, index) {
+  const map = PRODUCT_PHRASES[language] || PRODUCT_PHRASES.english;
+  if (Array.isArray(products) && products.length > 0) {
+    const picked = products
+      .slice(0, 2)
+      .map((item) => map[item] || item.toLowerCase());
+    return picked.join(language === 'hinglish' ? ' aur ' : ' and ');
+  }
+
+  const defaults =
+    language === 'hinglish'
+      ? [
+          'parda aur cotton chadar',
+          'kambal aur razai',
+          'sofa cover aur bedsheet',
+          'gadda aur takiya',
+        ]
+      : [
+          'curtains and cotton bedsheets',
+          'mink blankets and quilts',
+          'sofa covers and home furnishings',
+          'bedsheets and pillows',
+        ];
+  return defaults[Math.abs(index) % defaults.length];
 }
 
 function buildTagSentence(tags, language) {
@@ -52,38 +97,36 @@ function buildTagSentence(tags, language) {
 export function getFallbackReview({
   rating = 5,
   language = 'english',
-  shopName = '',
+  shopName = 'K.M. Handloom',
+  products = [],
   tags = [],
   index = 0,
 }) {
   const store = cleanDisplayShopName(shopName);
+  const itemText = buildProductMention(products, language, index);
   const tagNote = buildTagSentence(tags, language);
 
   const templates = {
     english: {
       5: [
-        `Visited ${store} recently and had a really smooth shopping experience. ${tagNote || 'Found exactly what I was looking for without any hassle.'} Will definitely come back again.`,
-        `Stopped by ${store} earlier today and was genuinely pleased with my purchase. ${tagNote || 'Everything was neatly arranged and the team was easy to talk to.'} Happy to recommend this place.`,
-        `Had a lovely visit to ${store}. ${tagNote || 'Good collection, fair pricing, and quick assistance from the staff.'} Easily my go-to spot in the area now.`,
-        `Really glad I walked into ${store} for shopping. ${tagNote || 'The items feel durable and the service was polite throughout.'} Would gladly visit again with family.`,
+        `Bought ${itemText} from ${store} in Dariyapur, Patna and had a great experience. ${tagNote || 'Fabric quality is solid and prices are very fair for Patna.'} Easily one of the best handloom shops nearby.`,
+        `Stopped by ${store} near Kadam Kuan, Patna for ${itemText}. ${tagNote || 'Good collection to choose from and the staff helped patiently.'} Will definitely come back for more home furnishings.`,
+        `Really happy with the ${itemText} I picked up at ${store}, Patna. ${tagNote || 'Reasonable wholesale-style pricing and neat display throughout the store.'} Gladly recommend this handloom shop.`,
       ],
       4: [
-        `Had a good experience shopping at ${store}. ${tagNote || 'Nice selection to browse through and the staff helped me compare options.'} Worth dropping by if you are nearby.`,
-        `Picked up a few things from ${store} and I am satisfied with the visit. ${tagNote || 'Decent variety and sensible pricing overall.'} Would visit again next time I need something.`,
-        `Stopped in at ${store} over the weekend. ${tagNote || 'The place is well organized and the people working there are courteous.'} A solid local spot to shop.`,
+        `Visited ${store} on Nala Road, Patna for ${itemText} and had a smooth shopping visit. ${tagNote || 'Nice variety and sensible prices overall.'} A reliable local handloom store in Dariyapur.`,
+        `Picked up ${itemText} from ${store} in Patna today. ${tagNote || 'Decent fabric quality and courteous staff.'} Worth checking out if you need curtains or bedding nearby.`,
       ],
     },
     hinglish: {
       5: [
-        `Recently ${store} visit kiya aur experience bahut accha raha. ${tagNote || 'Jo chahiye tha aasani se mil gaya aur billing bhi fast thi.'} Next time zaroor phir aunga.`,
-        `${store} par shopping karke kaafi accha laga. ${tagNote || 'Collection badiya hai aur staff ne aram se sab dikhaya.'} Aas-paas ke logon ko zaroor recommend karunga.`,
-        `Aaj ${store} gaya tha aur kaafi satisfied feel hua. ${tagNote || 'Saman ki quality aur rates dono hi badhiya lage.'} Family ke saath dobara visit karunga.`,
-        `Bohot accha local store hai ${store}. ${tagNote || 'Store clean hai aur har cheez dhang se rakhi hui hai.'} Zaroor try karein.`,
+        `Dariyapur, Patna mein ${store} se ${itemText} liya aur experience bahut accha raha. ${tagNote || 'Quality badiya hai aur rates bhi kaafi reasonable lage.'} Patna mein handloom shopping ke liye badhiya dukan hai.`,
+        `Kadam Kuan, Patna mein ${store} par ${itemText} lene gaya tha. ${tagNote || 'Collection kaafi acchi hai aur staff ne aaram se sab dikhaya.'} Family ke saath dobara zaroor aunga.`,
+        `Aaj ${store}, Nala Road Patna se ${itemText} kharida. ${tagNote || 'Sasta aur accha handloom saman mil gaya bina kisi jhanjhat ke.'} Zaroor recommend karunga.`,
       ],
       4: [
-        `${store} par accha experience raha. ${tagNote || 'Options kaafi mil gaye aur staff ka behaviour bhi accha tha.'} Dobara aana pasand karunga.`,
-        `Kuch saman lene ${store} gaya tha aur overall shopping smooth rahi. ${tagNote || 'Variety theek hai aur prices bhi sahi lage.'} Accha store hai.`,
-        `Weekend par ${store} visit kiya. ${tagNote || 'Dukan neat thi aur jo chahiye tha time par mil gaya.'} Worth a visit hai.`,
+        `Patna ke Dariyapur area mein ${store} se ${itemText} liya. ${tagNote || 'Options kaafi mil gaye aur staff ka behaviour bhi accha tha.'} Acchi local handloom dukan hai.`,
+        `${store}, Patna mein ${itemText} ke liye visit kiya tha. ${tagNote || 'Variety theek hai aur price bhi sahi laga.'} Dobara shopping karna pasand karunga.`,
       ],
     },
   };

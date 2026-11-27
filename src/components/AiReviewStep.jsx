@@ -18,13 +18,16 @@ function countWords(text) {
 export default function AiReviewStep({
   shopName,
   rating,
-  tags,
-  selectedTags,
+  products = [],
+  selectedProducts = [],
+  tags = [],
+  selectedTags = [],
   language,
   reviewText,
   isLoading,
   isFallback,
   onReviewChange,
+  onToggleProduct,
   onToggleTag,
   onLanguageChange,
   onRegenerate,
@@ -121,10 +124,40 @@ export default function AiReviewStep({
         </div>
       </div>
 
-      {/* Highlight Tags */}
-      <div className="mt-5">
-        <p className="text-xs font-medium text-[#5B6472] mb-2.5">
-          Tap highlights to mention
+      {/* What did you shop for? (Local SEO Product Selector) */}
+      {products.length > 0 && (
+        <div className="mt-5">
+          <p className="text-xs font-medium text-[#5B6472] mb-2">
+            What did you buy? <span className="text-slate-400 font-normal">(optional)</span>
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Products purchased">
+            {products.map((product) => {
+              const isSelected = selectedProducts.includes(product);
+              return (
+                <button
+                  key={product}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => onToggleProduct(product)}
+                  className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs sm:text-[13px] font-medium transition-all whitespace-nowrap cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A56DB] ${
+                    isSelected
+                      ? 'bg-[#111827] text-white shadow-xs'
+                      : 'bg-slate-50 text-[#374151] border border-slate-200/90 hover:border-slate-300 hover:bg-slate-100/70'
+                  }`}
+                >
+                  {isSelected && <Check className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+                  <span>{product}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Experience Highlight Tags */}
+      <div className="mt-4">
+        <p className="text-xs font-medium text-[#5B6472] mb-2">
+          What stood out?
         </p>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Store highlights">
           {tags.map((tag) => {
@@ -135,7 +168,7 @@ export default function AiReviewStep({
                 type="button"
                 aria-pressed={isSelected}
                 onClick={() => onToggleTag(tag)}
-                className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs sm:text-[13px] font-medium transition-all whitespace-nowrap cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A56DB] ${
+                className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs sm:text-[13px] font-medium transition-all whitespace-nowrap cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A56DB] ${
                   isSelected
                     ? 'bg-[#1A56DB] text-white shadow-xs shadow-blue-900/10'
                     : 'bg-slate-50 text-[#374151] border border-slate-200/90 hover:border-slate-300 hover:bg-slate-100/70'

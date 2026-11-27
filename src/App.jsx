@@ -14,16 +14,24 @@ import { getFallbackReview } from './data/fallbackReviews.js';
 // ============================================================================
 const SHOP_NAME = 'K.M. Handloom';
 const SHOP_DETAILS =
-  'Curtains, bedsheets, and handloom furnishings store on Nala Road, Kadam Kuan, Patna';
-const SHOP_LOCATION = 'Nala Road, Kadam Kuan · Patna';
+  'Retail and wholesale handloom store in Dariyapur, Nala Road, Kadam Kuan, Patna offering curtains, cotton bedsheets, blankets, razai, mattresses, pillows, sofa covers, and doormats';
+const SHOP_LOCATION = 'Dariyapur, Nala Road · Patna';
 const SHOP_PHONE = '093041 04210';
 const GOOGLE_REVIEW_URL = 'https://g.page/r/CSYI-M0EajmFEBM/review';
+const PRODUCT_CATEGORIES = [
+  'Curtains',
+  'Bedsheets',
+  'Blankets & Razai',
+  'Mattress & Pillows',
+  'Sofa Covers & Doormats',
+  'Wholesale / Bulk',
+];
 const DEFAULT_TAGS = [
   'Great Quality',
-  'Good Curtain Variety',
-  'Reasonable Prices',
+  'Wholesale & Fair Prices',
   'Helpful Staff',
-  'Good collectioin of bedshhet',
+  'Good Variety',
+  'Wedding / Gift Sets',
   'Clean Store',
 ];
 
@@ -71,6 +79,7 @@ async function copyTextToClipboard(text) {
 export default function App() {
   const [rating, setRating] = useState(0);
   const [language, setLanguage] = useState('english');
+  const [selectedProducts, setSelectedProducts] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [reviewText, setReviewText] = useState('');
   const [isLoadingReview, setIsLoadingReview] = useState(false);
@@ -103,7 +112,13 @@ export default function App() {
   }, []);
 
   const fetchAiReview = useCallback(
-    async ({ targetRating, targetLanguage, targetTags, previousReview = '' }) => {
+    async ({
+      targetRating,
+      targetLanguage,
+      targetProducts,
+      targetTags,
+      previousReview = '',
+    }) => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -121,9 +136,11 @@ export default function App() {
           body: JSON.stringify({
             rating: targetRating,
             language: targetLanguage,
+            products: targetProducts,
             tags: targetTags,
             shopName: SHOP_NAME,
             shopDetails: SHOP_DETAILS,
+            shopLocation: SHOP_LOCATION,
             previousReview,
           }),
         });
@@ -148,6 +165,7 @@ export default function App() {
           rating: targetRating,
           language: targetLanguage,
           shopName: SHOP_NAME,
+          products: targetProducts,
           tags: targetTags,
           index: fallbackCounterRef.current,
         });
@@ -170,6 +188,7 @@ export default function App() {
       fetchAiReview({
         targetRating: nextRating,
         targetLanguage: language,
+        targetProducts: selectedProducts,
         targetTags: selectedTags,
         previousReview: '',
       });
@@ -187,6 +206,23 @@ export default function App() {
     setRating(0);
   }
 
+  function handleToggleProduct(product) {
+    const nextProducts = selectedProducts.includes(product)
+      ? selectedProducts.filter((item) => item !== product)
+      : [...selectedProducts, product];
+    setSelectedProducts(nextProducts);
+
+    if (rating >= 4) {
+      fetchAiReview({
+        targetRating: rating,
+        targetLanguage: language,
+        targetProducts: nextProducts,
+        targetTags: selectedTags,
+        previousReview: lastReviewRef.current,
+      });
+    }
+  }
+
   function handleToggleTag(tag) {
     const nextTags = selectedTags.includes(tag)
       ? selectedTags.filter((item) => item !== tag)
@@ -197,6 +233,7 @@ export default function App() {
       fetchAiReview({
         targetRating: rating,
         targetLanguage: language,
+        targetProducts: selectedProducts,
         targetTags: nextTags,
         previousReview: lastReviewRef.current,
       });
@@ -209,6 +246,7 @@ export default function App() {
       fetchAiReview({
         targetRating: rating,
         targetLanguage: nextLanguage,
+        targetProducts: selectedProducts,
         targetTags: selectedTags,
         previousReview: lastReviewRef.current,
       });
@@ -220,6 +258,7 @@ export default function App() {
     fetchAiReview({
       targetRating: rating,
       targetLanguage: language,
+      targetProducts: selectedProducts,
       targetTags: selectedTags,
       previousReview: reviewText || lastReviewRef.current,
     });
@@ -284,7 +323,7 @@ export default function App() {
   return (
     <div className="min-h-dvh w-full bg-[#F4F5F7] text-[#111827] flex flex-col justify-between px-4 py-6 sm:px-6 sm:py-10">
       <main className="flex-1 flex items-center justify-center w-full">
-        <div className="w-full max-w-[468px] rounded-3xl bg-white p-6 sm:p-8 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_-8px_rgba(15,23,42,0.08)]">
+        <div className="w-full max-w-[480px] rounded-3xl bg-white p-6 sm:p-8 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_-8px_rgba(15,23,42,0.08)]">
           <AnimatePresence mode="wait">
             {rating === 0 && (
               <StarRatingStep
@@ -299,6 +338,8 @@ export default function App() {
               <AiReviewStep
                 shopName={SHOP_NAME}
                 rating={rating}
+                products={PRODUCT_CATEGORIES}
+                selectedProducts={selectedProducts}
                 tags={DEFAULT_TAGS}
                 selectedTags={selectedTags}
                 language={language}
@@ -306,6 +347,7 @@ export default function App() {
                 isLoading={isLoadingReview}
                 isFallback={isFallbackReview}
                 onReviewChange={setReviewText}
+                onToggleProduct={handleToggleProduct}
                 onToggleTag={handleToggleTag}
                 onLanguageChange={handleLanguageChange}
                 onRegenerate={handleRegenerate}

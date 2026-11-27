@@ -11,21 +11,129 @@ const PORT = Number(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
 const OPENING_ANGLES = [
-  'Begin by mentioning stopping by the store recently.',
+  'Begin by mentioning what you bought at the store recently.',
+  'Begin by mentioning visiting the shop in the Dariyapur or Kadam Kuan area of Patna.',
   'Begin directly with what stood out most during the visit.',
-  'Begin with a casual comment about shopping here.',
-  'Begin by highlighting the overall experience in plain words.',
-  'Begin by mentioning how easy it was to find what you wanted.',
-  'Begin by mentioning the vibe or setup of the place.',
-  'Begin with a quick note about the value or service.',
-  'Begin with a straightforward recommendation to nearby shoppers.',
+  'Begin with a casual note about the fabric quality or pricing.',
+  'Begin by mentioning how easy it was to pick out items for your home.',
+  'Begin by highlighting the staff service and collection.',
+  'Begin with a straightforward recommendation for shoppers in Patna.',
+  'Begin with a quick mention of coming in for home furnishing shopping.',
 ];
+
+const LOCAL_AREA_CUES = [
+  'Dariyapur, Patna',
+  'Kadam Kuan, Patna',
+  'Nala Road, Patna',
+  'Dariyapur near Nala Road, Patna',
+  'Patna',
+];
+
+const PRODUCT_SEO_KEYWORDS: Record<
+  string,
+  { english: string[]; hinglish: string[] }
+> = {
+  Curtains: {
+    english: [
+      'door and window curtains',
+      'designer curtains',
+      'blackout curtains',
+      'curtain shop',
+    ],
+    hinglish: [
+      'parda',
+      'door aur window parda',
+      'designer curtains',
+      'parda ka dukan',
+    ],
+  },
+  Bedsheets: {
+    english: [
+      'cotton bedsheets',
+      'king size bedsheet',
+      'wedding bedsheet set',
+      'cotton bedsheet shop',
+    ],
+    hinglish: [
+      'cotton chadar',
+      'king size bedsheet',
+      'shaadi ka bedsheet set',
+      'chadar',
+    ],
+  },
+  'Blankets & Razai': {
+    english: [
+      'mink blanket',
+      'winter quilt',
+      'AC comforter',
+      'blanket and razai shop',
+    ],
+    hinglish: [
+      'kambal aur razai',
+      'mink blanket',
+      'winter kambal',
+      'AC comforter',
+    ],
+  },
+  'Mattress & Pillows': {
+    english: [
+      'orthopedic mattress',
+      'sleeping pillows',
+      'mattress and pillows',
+    ],
+    hinglish: ['gadda aur takiya', 'orthopedic mattress', 'soft takiya'],
+  },
+  'Sofa Covers & Doormats': {
+    english: [
+      'velvet sofa cover',
+      'anti-skid doormat',
+      'sofa cover and doormats',
+      'home furnishing accessories',
+    ],
+    hinglish: ['velvet sofa cover', 'sofa cover', 'doormat', 'home furnishing'],
+  },
+  'Wholesale / Bulk': {
+    english: [
+      'wholesale handloom rates',
+      'wholesale bedsheets and curtains',
+      'bulk order pricing',
+      'wholesale handloom shop',
+    ],
+    hinglish: [
+      'wholesale rate',
+      'wholesale handloom dukan',
+      'bulk order',
+      'sasta wholesale rate',
+    ],
+  },
+};
+
+const DEFAULT_SEO_PRODUCT_ROTATION = {
+  english: [
+    'curtains and cotton bedsheets',
+    'home furnishings and designer curtains',
+    'cotton bedsheets and mink blankets',
+    'curtains, sofa covers, and doormats',
+    'blankets, razai, and pillows',
+    'handloom items at wholesale rates',
+  ],
+  hinglish: [
+    'parda aur cotton chadar',
+    'kambal aur razai',
+    'curtains aur sofa cover',
+    'gadda, takiya aur bedsheet',
+    'wholesale rate par handloom saman',
+  ],
+};
+
+function pickRandom<T>(items: T[]): T {
+  return items[Math.floor(Math.random() * items.length)];
+}
 
 function sanitizeShopField(value: unknown, fallback: string): string {
   if (typeof value !== 'string') return fallback;
   const trimmed = value.trim();
   if (!trimmed) return fallback;
-  // Clean default bracket placeholders like "[YOUR SHOP NAME]" or "[e.g., home decor...]"
   const unwrapped = trimmed.replace(/^\[(.*)\]$/, '$1').trim();
   if (/^your shop name$/i.test(unwrapped)) {
     return 'this shop';
@@ -40,6 +148,27 @@ function cleanReviewText(raw: string): string {
     .replace(/#\w+/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function buildSeoKeywordHints(
+  products: string[],
+  language: 'english' | 'hinglish'
+): { areaCue: string; productHints: string[] } {
+  const areaCue = pickRandom(LOCAL_AREA_CUES);
+
+  if (products.length > 0) {
+    const productHints = products.slice(0, 2).map((product) => {
+      const bucket = PRODUCT_SEO_KEYWORDS[product];
+      if (!bucket) return product.toLowerCase();
+      return pickRandom(bucket[language]);
+    });
+    return { areaCue, productHints };
+  }
+
+  return {
+    areaCue,
+    productHints: [pickRandom(DEFAULT_SEO_PRODUCT_ROTATION[language])],
+  };
 }
 
 function getGenAIClient(): GoogleGenAI {
@@ -110,11 +239,18 @@ async function startServer() {
       }
 
       const language = body.language === 'hinglish' ? 'hinglish' : 'english';
-      const shopName = sanitizeShopField(body.shopName, 'this shop');
+      const shopName = sanitizeShopField(body.shopName, 'K.M. Handloom');
       const shopDetails = sanitizeShopField(
         body.shopDetails,
-        'local retail store'
+        'handloom and home furnishing store in Dariyapur, Patna'
       );
+      const products: string[] = Array.isArray(body.products)
+        ? body.products
+            .filter((p: unknown): p is string => typeof p === 'string')
+            .map((p: string) => p.trim())
+            .filter(Boolean)
+            .slice(0, 6)
+        : [];
       const tags: string[] = Array.isArray(body.tags)
         ? body.tags
             .filter((t: unknown): t is string => typeof t === 'string')
@@ -127,42 +263,45 @@ async function startServer() {
           ? body.previousReview.trim().slice(0, 300)
           : '';
 
-      const angle =
-        OPENING_ANGLES[Math.floor(Math.random() * OPENING_ANGLES.length)];
+      const angle = pickRandom(OPENING_ANGLES);
+      const { areaCue, productHints } = buildSeoKeywordHints(products, language);
 
       const languageDirective =
         language === 'hinglish'
-          ? 'Write in natural, everyday Hinglish (conversational Hindi written in Roman/English letters mixed naturally with common English words — like how an Indian customer genuinely writes a Google review on their phone). Do NOT use Devanagari script.'
-          : 'Write in natural, everyday English as a real local customer typing quickly on their phone.';
+          ? 'Write in natural, everyday Hinglish as spoken in Patna, Bihar (conversational Hindi written in Roman/English letters mixed naturally with everyday English words — like parda, chadar, kambal, razai, gadda, takiya, handloom dukan, wholesale rate). Do NOT use Devanagari script.'
+          : 'Write in natural, everyday English as a real local customer in Patna typing quickly on their phone.';
 
       const ratingTone =
         rating === 5
-          ? '5 out of 5 stars: warm, genuinely happy, and ready to visit again.'
+          ? '5 out of 5 stars: warm, genuinely happy, and ready to recommend or visit again.'
           : '4 out of 5 stars: genuinely positive and satisfied, grounded and realistic without sounding over-the-top.';
 
       const systemInstruction = [
-        'You write short, authentic Google customer reviews for a local shop.',
+        'You write short, authentic, local-SEO-friendly Google Maps customer reviews for a retail & wholesale handloom shop in Patna.',
         'Strict rules:',
         '- Output ONLY the review text. No title, no intro, no bullet points, no quotes, no hashtags, no emojis.',
-        '- Length: exactly 2 to 3 natural sentences, strictly under 45 words total.',
-        '- Sound like a real local customer, never like a marketer or copywriter.',
+        '- Length: exactly 2 to 3 natural sentences, strictly under 48 words total.',
+        '- Local SEO guidance (KEEP IT NATURAL): weave in the shop name OR "handloom shop", 1 natural Patna location cue (such as Dariyapur, Kadam Kuan, Nala Road, or Patna), and the suggested product keyword naturally inside normal human phrasing.',
+        '- NEVER keyword-stuff or sound like an advertisement. Sound like a genuine local shopper.',
         '- Avoid clichés such as "hidden gem", "one-stop shop", "unparalleled", "elevate", "exceeded expectations", "top-tier", or "must-visit".',
         languageDirective,
       ].join('\n');
 
       const promptParts = [
         `Shop name: ${shopName}`,
-        `What the shop offers: ${shopDetails}`,
+        `Shop profile: ${shopDetails}`,
         `Customer rating: ${ratingTone}`,
+        `Natural product mention to include: ${productHints.join(' and ')}`,
+        `Natural local area cue to weave in once: ${areaCue}`,
         tags.length > 0
-          ? `Specific highlights to weave in naturally: ${tags.join(', ')}`
-          : 'Focus naturally on the overall shopping experience and store offerings.',
+          ? `Customer highlights to weave in naturally: ${tags.join(', ')}`
+          : 'Mention the quality, variety, or fair retail/wholesale pricing naturally.',
         `Opening variation instruction: ${angle}`,
       ];
 
       if (previousReview) {
         promptParts.push(
-          `Do NOT start with the same opening phrase or structure as this previous draft: "${previousReview}"`
+          `Do NOT reuse the same opening phrase or sentence flow as this previous draft: "${previousReview}"`
         );
       }
 
